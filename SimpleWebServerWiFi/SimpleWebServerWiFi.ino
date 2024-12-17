@@ -36,6 +36,7 @@ int status = WL_IDLE_STATUS;
 WiFiServer server(80);
 WiFiClient net;
 MQTTClient mqttclient;
+unsigned reconnects = 0;
 
 // Interval to check connection status (in milliseconds)
 const unsigned long checkInterval = 60000; 
@@ -85,17 +86,20 @@ boolean connectMQTT()
 
 
 void loop() {
+  WiFi.refresh();
   // Periodically check the connection status
   if (millis() - lastCheckTime > checkInterval) {
     lastCheckTime = millis();
     if (WiFi.status() != WL_CONNECTED) {
       Serial.println("Wi-Fi disconnected. Attempting to reconnect...");
       connectToWiFi();
+      reconnects++;
     } else {
       Serial.print("Wi-Fi is connected:");
       Serial.print(millis());
       Serial.println(" ms since start");
-      boolean rc = mqttclient.publish("hello/topic","heartbeat");
+      String payload = "HB@" + String(millis(),DEC) + " ms, " + String(reconnects) + " reconnects";
+      boolean rc = mqttclient.publish("hydro/pump", payload);
       Serial.print("published to broker with result:");
       if (rc) 
         {Serial.println("True");}
